@@ -80,4 +80,9 @@ public class MainActivity extends AppCompatActivity {
             startActivity(intent);
         }
     }
+
+    public void onVideoFromCameraClick(View view) {
+        Intent intent = new Intent(this, VideoFaceDetectionActivity.class);
+        startActivity(intent);
+    }
 }
