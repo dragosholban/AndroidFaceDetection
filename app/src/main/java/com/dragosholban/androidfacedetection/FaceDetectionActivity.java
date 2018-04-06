@@ -3,21 +3,39 @@ package com.dragosholban.androidfacedetection;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Matrix;
+import android.graphics.Paint;
+import android.graphics.Path;
 import android.media.ExifInterface;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
+import android.util.SparseArray;
 import android.widget.ImageView;
 import android.widget.Toast;
+
+import com.google.android.gms.vision.Frame;
+import com.google.android.gms.vision.face.Face;
+import com.google.android.gms.vision.face.FaceDetector;
+import com.google.android.gms.vision.face.Landmark;
 
 import java.io.IOException;
 
 public class FaceDetectionActivity extends AppCompatActivity {
 
+    private static final String TAG = "FaceDetection";
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_face_detection);
+
+        final FaceDetector detector = new FaceDetector.Builder(this)
+                .setTrackingEnabled(false)
+                .setLandmarkType(FaceDetector.ALL_LANDMARKS)
+                .build();
 
         Intent intent = getIntent();
         final ImageView imageView = findViewById(R.id.imageView);
@@ -31,6 +49,43 @@ public class FaceDetectionActivity extends AppCompatActivity {
                 if (mCurrentPhotoPath != null) {
                     Bitmap bitmap = getBitmapFromPathForImageView(mCurrentPhotoPath, imageView);
                     imageView.setImageBitmap(bitmap);
+
+                    Frame frame = new Frame.Builder().setBitmap(bitmap).build();
+                    SparseArray<Face> faces = detector.detect(frame);
+
+                    Log.d(TAG, "Faces detected: " + String.valueOf(faces.size()));
+
+                    Paint paint = new Paint();
+                    paint.setColor(Color.GREEN);
+                    paint.setStyle(Paint.Style.STROKE);
+                    paint.setStrokeWidth(5);
+
+                    Bitmap mutableBitmap = bitmap.copy(Bitmap.Config.ARGB_8888, true);
+                    Canvas canvas = new Canvas(mutableBitmap);
+
+                    for (int i = 0; i < faces.size(); ++i) {
+                        Face face = faces.valueAt(i);
+                        for (Landmark landmark : face.getLandmarks()) {
+                            int cx = (int) (landmark.getPosition().x);
+                            int cy = (int) (landmark.getPosition().y);
+                            canvas.drawCircle(cx, cy, 10, paint);
+                        }
+
+                        Path path = new Path();
+                        path.moveTo(face.getPosition().x, face.getPosition().y);
+                        path.lineTo(face.getPosition().x + face.getWidth(), face.getPosition().y);
+                        path.lineTo(face.getPosition().x + face.getWidth(), face.getPosition().y + face.getHeight());
+                        path.lineTo(face.getPosition().x, face.getPosition().y + face.getHeight());
+                        path.close();
+
+                        Paint redPaint = new Paint();
+                        redPaint.setColor(0XFFFF0000);
+                        redPaint.setStyle(Paint.Style.STROKE);
+                        redPaint.setStrokeWidth(8.0f);
+                        canvas.drawPath(path, redPaint);
+                    }
+
+                    imageView.setImageBitmap(mutableBitmap);
                 }
             }
         });
